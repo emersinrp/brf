@@ -95,7 +95,7 @@ class CargaAtendimentoStatusCliente(HttpUser):
                 print(
                     f"03 - FALHA obter clientes montantes \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores success/data"
+                    "Nao foi possivel acessar os valores de data"
                 )
 
         
