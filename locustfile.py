@@ -1,42 +1,29 @@
 from asyncio import Task
-from locust import between, task, HttpUser
+import gevent
+from locust import between, task, HttpUser, tag
+from locust.env import Environment
 from json import loads
 from random import choice
 
 
-class CargaTestsApisTina(HttpUser):
+mensagemFalha = "Nao foi possivel acessar o valor de data"
 
+class CargaApiAtendimento(HttpUser):
+
+    host = "https://brf-api-pim-attendance-dev.azurewebsites.net"
     wait_time = between(1.0, 3.0)
 
     ENDPOINT_PRIFIX_ATENDIMENTO = "/api/StatusCliente"
-    ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES = "/api/Devolucoes"
-    ENDPOINT_PRIFIX_CUSTOMER_VOLUMECAPTADO = "/api/VolumeCaptado"
-    ENDPOINT_PRIFIX_CUSTOMER_MIXUSUAL = "/api/MixUsual"
-    ENDPOINT_PRIFIX_CUSTOMER_STATUS_PEDIDO = "/api/StatusPedidos"
-    ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_RECUSADOS = "/api/PedidosRecusados"
-    ENDPOINT_PRIFIX_PRODUTOS = "/api/Produtos"
     COD_VENDEDOR = [
         "00511899",
         "00005095",
         "00015614"
     ]
-    COD_VENDEDOR_CUSTOMER = [
-        "00580849",
-        "00307501",
-        "00553615"
-    ]
     COD_CLIENTE = [
         "0001005443"
     ]
-    COD_PEDIDOS = [
-        "1202086713",
-        "1202429886"
-    ]
 
-# APIs Atendimento
-# Status Cliente
-
-#    @task  # (2) definir o peso = priorizacao de execucao.
+    @task  # (2) definir o peso = priorizacao de execucao.
     def busca_cli_des_bloq(self):
 
         consult_cliente_endpoint = f"{self.ENDPOINT_PRIFIX_ATENDIMENTO}/BuscaClientesBloqueadosDesbloqueados"
@@ -48,7 +35,7 @@ class CargaTestsApisTina(HttpUser):
             "search": ""
         }
         with self.client.post(url=consult_cliente_endpoint,
-                              name="01 - Consulta cliente bloqueado e desbloqueado",
+                              name="CargaApiAtendimento 01 - Consulta cliente bloqueado e desbloqueado",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -61,10 +48,10 @@ class CargaTestsApisTina(HttpUser):
             except KeyError:
                 print(f"============= \n 01 - FALHA Consulta cliente bloq/desbloq. \n {response.text} \n Status Code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar o valor meta.count"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def busca_status_cliente(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_ATENDIMENTO}/BuscaStatusCliente"
@@ -73,7 +60,7 @@ class CargaTestsApisTina(HttpUser):
             "codVendedor": "00511899"
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="02 - Consulta status cliente",
+                              name="CargaApiAtendimento 02 - Consulta status cliente",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -84,10 +71,10 @@ class CargaTestsApisTina(HttpUser):
             except KeyError:
                 print(f"============= \n 02 - FALHA busca cliente \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores success/data"
+                    mensagemFalha
                 )
     
-#    @task
+    @task
     def obter_cliente_montante(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_ATENDIMENTO}/ObterClientesMontantes"
@@ -98,7 +85,7 @@ class CargaTestsApisTina(HttpUser):
             "search": ""
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="03 - Obter clientes montantes",
+                              name="CargaApiAtendimento 03 - Obter clientes montantes",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -112,13 +99,32 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 03 - FALHA obter clientes montantes \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-# APIs Customer
-# Devoluções
+class CargaApiCustomer(HttpUser):
 
-#    @task
+    host = "https://brf-api-pim-customer-dev.azurewebsites.net"
+    wait_time = between(1.0, 3.0)
+
+    ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES = "/api/Devolucoes"
+    ENDPOINT_PRIFIX_CUSTOMER_VOLUMECAPTADO = "/api/VolumeCaptado"
+    ENDPOINT_PRIFIX_CUSTOMER_MIXUSUAL = "/api/MixUsual"
+    ENDPOINT_PRIFIX_CUSTOMER_STATUS_PEDIDO = "/api/StatusPedidos"
+    ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_RECUSADOS = "/api/PedidosRecusados"
+    COD_PEDIDOS = [
+        "1202086713",
+        "1202429886"
+    ]
+    COD_VENDEDOR_CUSTOMER = [
+        "00580849",
+        "00307501",
+        "00553615"
+    ]
+
+# Devolucoes
+
+    @task
     def busca_devolucoes_categoria(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES}/BuscarDevolucoesPorCategoria"
@@ -129,7 +135,7 @@ class CargaTestsApisTina(HttpUser):
            "categoriaGM": "LINGUICA FRESCA (DOMESTICA)"
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="01 - Busca devoluções por categorias",
+                              name="CargaApiCustomer 01 - Busca devoluções por categorias",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -143,10 +149,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 01 - FALHA ao obter resultado de devolucoes por categoria \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def busca_devolucao_cliente(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES}/BuscarDevolucoesPorCliente"
@@ -156,7 +162,7 @@ class CargaTestsApisTina(HttpUser):
            "periodo": "m"
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="02 - Busca devoluções por cliente",
+                              name="CargaApiCustomer 02 - Busca devoluções por cliente",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -170,10 +176,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 02 - FALHA ao obter resultado de devolucoes por cliente \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def busca_devolucao_sku(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES}/BuscarDevolucoesPorSKU"
@@ -185,7 +191,7 @@ class CargaTestsApisTina(HttpUser):
            "categoriaGM": "LINGUICA FRESCA (DOMESTICA)" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="03 - Busca devolucoes por SKU",
+                              name="CargaApiCustomer 03 - Busca devolucoes por SKU",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -199,10 +205,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 03 - FALHA ao obter resultado de devolucoes por SKU \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def soma_devolucoes(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES}/GetSomaDevolucoes"
@@ -211,7 +217,7 @@ class CargaTestsApisTina(HttpUser):
            "codCliente": "0000091263" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="04 - Busca soma devoluções",
+                              name="CargaApiCustomer 04 - Busca soma devoluções",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -225,22 +231,22 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 04 - FALHA ao obter resultado da soma de devolucoes \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data ou grafico"
+                    mensagemFalha
                 )
 
 # Volume Captado
 
-#    @task
+    @task
     def soma_volume_captado(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_VOLUMECAPTADO}/GetSomaVolumeCaptado"
         body = {
-           "codVendedor": "00307501",
+           "codVendedor": choice(self.COD_VENDEDOR_CUSTOMER),
            "dataDe": "2022-02-01T14:13:16.660Z",
            "dataAte": "2022-02-08T14:13:16.660Z" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="05 - Soma volume captado",
+                              name="CargaApiCustomer 05 - Soma volume captado",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -254,10 +260,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 05 - FALHA ao obter resultado da soma de volume captado \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def soma_categoria_volume_captado(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_VOLUMECAPTADO}/GetSomaCategoriaVolumeCaptado"
@@ -268,7 +274,7 @@ class CargaTestsApisTina(HttpUser):
            "categoriaGM": "EMPANADO (DOMESTICO)"   
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="06 - Soma categoria volume captado",
+                              name="CargaApiCustomer 06 - Soma categoria volume captado",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -282,10 +288,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 06 - FALHA ao obter resultado da soma categoria de volume captado \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def busca_sku_volume_captado(self):
         
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_VOLUMECAPTADO}/GetSKUVolumeCaptado"
@@ -297,7 +303,7 @@ class CargaTestsApisTina(HttpUser):
            "materialDescricao": "MARGARINA VEG.CREM.C/SAL QUALY 500G" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="07 - Busca volume captado por SKU",
+                              name="CargaApiCustomer 07 - Busca volume captado por SKU",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -311,12 +317,12 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 07 - FALHA ao obter resultado da soma categoria de volume captado \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
 # Mix Usual
 
-#    @task
+    @task
     def mix_usual_cliente(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_MIXUSUAL}/ListaMixUsual"
@@ -325,7 +331,7 @@ class CargaTestsApisTina(HttpUser):
            "cnpj": "58767252000716" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="08 - Lista Mix Usual",
+                              name="CargaApiCustomer 08 - Lista Mix Usual",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -339,12 +345,12 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 08 - FALHA ao obter lista mix usual de clientes \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
 # Status Pedido
 
-#    @task
+    @task
     def lista_pedidos_status_s10(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_STATUS_PEDIDO}/ListaPedidosStatusS10"
@@ -355,7 +361,7 @@ class CargaTestsApisTina(HttpUser):
            "dataAte": "2022-02-28"
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="09 - Lista pedidos Status S10",
+                              name="CargaApiCustomer 09 - Lista pedidos Status S10",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -369,10 +375,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 09 - FALHA ao obter lista de pedidos status S10 \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def obter_pedidos_s10(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_STATUS_PEDIDO}/ObterPedidoS10"
@@ -382,7 +388,7 @@ class CargaTestsApisTina(HttpUser):
            "dataAte": "2022-02-28" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="10 - Obter pedidos S10",
+                              name="CargaApiCustomer 10 - Obter pedidos S10",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -396,12 +402,12 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 10 - FALHA ao obter pedidos S10 \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
 # Pedidos Recusados
 
-#    @task
+    @task
     def envia_push_vendedor(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_RECUSADOS}/EnviaPushVendedor"
@@ -409,7 +415,7 @@ class CargaTestsApisTina(HttpUser):
            "codigo": choice(self.COD_VENDEDOR_CUSTOMER) 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="11 - Envia push Vendedor",
+                              name="CargaApiCustomer 11 - Envia push Vendedor",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -423,10 +429,10 @@ class CargaTestsApisTina(HttpUser):
                 print(
                     f"============= \n 11 - FALHA ao enviar push ao vendedor \n {response.text} \n Status code: {response.status_code}")
                 response.failure(
-                    "Nao foi possivel acessar os valores de data"
+                    mensagemFalha
                 )
 
-#    @task
+    @task
     def lista_pedidos_recusados(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_RECUSADOS}/ListaPedidosRecusados"
@@ -436,7 +442,7 @@ class CargaTestsApisTina(HttpUser):
            "dataFim": "2022-02-14T14:36:19.605Z" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="12 - Lista pedidos recusados",
+                              name="CargaApiCustomer 12 - Lista pedidos recusados",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
@@ -450,7 +456,7 @@ class CargaTestsApisTina(HttpUser):
             print(
                 f"============= \n 12 - FALHA ao listar pedidos recusados \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
 
 #    @task endpoint com problema
@@ -461,7 +467,7 @@ class CargaTestsApisTina(HttpUser):
            "codigo": "1202106635" 
         }
         with self.client.post(url=consult_client_endpoint,
-                              name="13 - Obter pedido",
+                              name="CargaApiCustomer 13 - Obter pedido",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
         
@@ -475,35 +481,40 @@ class CargaTestsApisTina(HttpUser):
             print(
                 f"============= \n 13 - FALHA ao obter pedidos \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
 
-# Produtos
+class CargaApiProducts(HttpUser):
 
-#    @task
+    host = "https://brf-api-pim-product-dev.azurewebsites.net"
+    wait_time = between(1.0, 3.0)
+
+    ENDPOINT_PRIFIX_PRODUTOS = "/api/Produtos"
+
+    @task
     def busca_categoria_produto(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_PRODUTOS}/BuscaCategorias"
 
         with self.client.post(url=consult_client_endpoint,
-                              name="14 - Busca categorias produto",
+                              name="CargaApiProducts 01 - Busca categorias produto",
                               catch_response=True) as response:
             resposta = loads(response.text or "null")
 
         try:
             print(
-                f"============= \n 14 - Busca categorias produto \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+                f"============= \n 01 - Busca categorias produto \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
             if resposta["success"] != True and len(resposta["data"]) != 1:
                 response.failure(
                     f"Corpo de resposta diferente do esperado: {response.text}")
         except KeyError:
             print(
-                f"============= \n 14 - FALHA ao buscar categorias \n {response.text} \n Status code: {response.status_code}")
+                f"============= \n 01 - FALHA ao buscar categorias \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
 
-#    @task
+    @task
     def busca_produtos(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_PRODUTOS}/BuscaProdutos"
@@ -512,21 +523,21 @@ class CargaTestsApisTina(HttpUser):
         }
 
         with self.client.post(url=consult_client_endpoint,
-                              name="15 - Busca produtos",
+                              name="CargaApiProducts 02 - Busca produtos",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
         try:
             print(
-                f"============= \n 15 - Busca produtos \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+                f"============= \n 02 - Busca produtos \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
             if resposta["success"] != True and len(resposta["data"]) != 5:
                 response.failure(
                     f"Corpo de resposta diferente do esperado: {response.text}")
         except KeyError:
             print(
-                f"============= \n 15 - FALHA ao buscar produtos \n {response.text} \n Status code: {response.status_code}")
+                f"============= \n 02 - FALHA ao buscar produtos \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
 
 #    @task endpoint com problema
@@ -538,24 +549,24 @@ class CargaTestsApisTina(HttpUser):
         }
 
         with self.client.post(url=consult_client_endpoint,
-                              name="16 - Busca ficha produto",
+                              name="CargaApiProducts 03 - Busca ficha produto",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
         try:
             print(
-                f"============= \n 16 - Busca ficha produto \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+                f"============= \n 03 - Busca ficha produto \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
             if resposta["success"] != True and len(resposta["data"]) != 19:
                 response.failure(
                     f"Corpo de resposta diferente do esperado: {response.text}")
         except KeyError:
             print(
-                f"============= \n 16 - FALHA ao buscar ficha de produtos \n {response.text} \n Status code: {response.status_code}")
+                f"============= \n 03 - FALHA ao buscar ficha de produtos \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
 
-#    @task
+    @task
     def busca_detalhe_produto(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_PRODUTOS}/BuscaDetalheProduto"
@@ -564,21 +575,21 @@ class CargaTestsApisTina(HttpUser):
         }
 
         with self.client.post(url=consult_client_endpoint,
-                              name="17 - Busca detalhe produto",
+                              name="CargaApiProducts 04 - Busca detalhe produto",
                               catch_response=True, json=body) as response:
             resposta = loads(response.text or "null")
 
         try:
             print(
-                f"============= \n 17 - Busca detalhe produto \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+                f"============= \n 04 - Busca detalhe produto \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
             if resposta["success"] != True and len(resposta["data"]) != 19:
                 response.failure(
                     f"Corpo de resposta diferente do esperado: {response.text}")
         except KeyError:
             print(
-                f"============= \n 17 - FALHA ao buscar detalhe dos produtos \n {response.text} \n Status code: {response.status_code}")
+                f"============= \n 04 - FALHA ao buscar detalhe dos produtos \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
 
 #    @task endpoint com problema
@@ -587,19 +598,29 @@ class CargaTestsApisTina(HttpUser):
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_PRODUTOS}/OportunidadeInovacao"
 
         with self.client.get(url=consult_client_endpoint,
-                              name="18 - Oportunidade inovacao",
+                              name="CargaApiProducts 05 - Oportunidade inovacao",
                               catch_response=True) as response:
             resposta = loads(response.text or "null")
 
         try:
             print(
-                f"============= \n 18 - Oportunidade inovacao \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+                f"============= \n 05 - Oportunidade inovacao \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
             if resposta["success"] != True and len(resposta["data"]) != 12:
                 response.failure(
                     f"Corpo de resposta diferente do esperado: {response.text}")
         except KeyError:
             print(
-                f"============= \n 18 - FALHA ao trazer oportundiade e inovacao \n {response.text} \n Status code: {response.status_code}")
+                f"============= \n 05 - FALHA ao trazer oportundiade e inovacao \n {response.text} \n Status code: {response.status_code}")
             response.failure(
-                "Nao foi possivel acessar os valores de data"
+                mensagemFalha
             )
+
+if __name__ == "__main__":
+    env = Environment(user_classes=[CargaApiAtendimento, CargaApiCustomer, CargaApiProducts])
+    env.create_local_runner()
+    env.create_web_ui("127.0.0.1", 8089)
+    env.runner.start(200, spawn_rate=10)
+    gevent.spawn_later(3600, lambda: env.runner.quit())
+    env.runner.greenlet.join()
+    env.web_ui.stop()
+#  tags = ['teste'])
