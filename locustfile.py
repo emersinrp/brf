@@ -111,8 +111,9 @@ class CargaApiCustomer(HttpUser):
     ENDPOINT_PRIFIX_CUSTOMER_MIXUSUAL = "/api/MixUsual"
     ENDPOINT_PRIFIX_CUSTOMER_STATUS_PEDIDO = "/api/StatusPedidos"
     ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_RECUSADOS = "/api/PedidosRecusados"
+    ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_ANTECIPADOS = "/api/PedidosAntecipados"
     COD_PEDIDOS = [
-        "1202086713",
+        "1202750987",
         "1202429886"
     ]
     COD_VENDEDOR_CUSTOMER = [
@@ -348,7 +349,7 @@ class CargaApiCustomer(HttpUser):
                 )
 
 # Status Pedido
-
+    @tag('teste')
     @task
     def lista_pedidos_status_s10(self):
 
@@ -376,7 +377,8 @@ class CargaApiCustomer(HttpUser):
                 response.failure(
                     mensagemFalha
                 )
-
+    
+    @tag('teste')
     @task
     def obter_pedidos_s10(self):
 
@@ -479,6 +481,66 @@ class CargaApiCustomer(HttpUser):
         except KeyError:
             print(
                 f"============= \n 13 - FALHA ao obter pedidos \n {response.text} \n Status code: {response.status_code}")
+            response.failure(
+                mensagemFalha
+            )
+
+# Pedidos Antecipados
+
+    @tag('teste')
+    @task
+    def buscar_pedidos_antecipados(self):
+
+        consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_ANTECIPADOS}/BuscarPedidosAntecipados"
+        body = {
+           "codCliente": "0007425106",
+           "codVendedor": "00357064" 
+        }
+
+        with self.client.post(url=consult_client_endpoint,
+                              name="CargaApiCustomar 14 - Buscar pedido antecipado",
+                              catch_response=True, json=body) as response:
+            resposta = loads(response.text or "null")
+
+        try:
+            print(
+                f"============= \n 14 - Buscar pedido antecipado \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+            if resposta["success"] != True and len(resposta["data"]) != 16:
+                response.failure(
+                    f"Corpo de resposta diferente do esperado: {response.text}")
+        except KeyError:
+            print(
+                f"============= \n 14 - FALHA ao buscar pedidos antecipados \n {response.text} \n Status code: {response.status_code}")
+            response.failure(
+                mensagemFalha
+            )
+
+    @tag('teste')
+    @task
+    def obter_pedido_antecipado(self):
+
+        consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_ANTECIPADOS}/ObterPedidoAntecipado"
+        body = {
+            "codVendedor": "00357064",
+            "codCliente": "0007425106",
+            "numPedidoSAP": "1201074534",
+            "dataSaida": "2022-01-10"
+        }
+
+        with self.client.post(url=consult_client_endpoint,
+                              name="CargaApiCustomar 15 - Obter pedido antecipado",
+                              catch_response=True, json=body) as response:
+            resposta = loads(response.text or "null")
+
+        try:
+            print(
+                f"============= \n 15 - Obter pedido antecipado \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+            if resposta["success"] != True and len(resposta["data"]) != 16:
+                response.failure(
+                    f"Corpo de resposta diferente do esperado: {response.text}")
+        except KeyError:
+            print(
+                f"============= \n 15 - FALHA ao obter pedidos antecipados \n {response.text} \n Status code: {response.status_code}")
             response.failure(
                 mensagemFalha
             )
@@ -687,7 +749,6 @@ class CargaApiLeadership(HttpUser):
 
     ENDPOINT_PRIFIX_LEADERSHIP = "/api/v1/phasing"
 
-    @tag('teste')
     @task
     def phasing_leadership(self):
 
@@ -712,7 +773,7 @@ class CargaApiLeadership(HttpUser):
             )        
 
 if __name__ == "__main__":
-    env = Environment(user_classes=[CargaApiLeadership],tags = ['teste'])
+    env = Environment(user_classes=[CargaApiCustomer],tags = ['teste'])
     env.create_local_runner()
     env.create_web_ui("127.0.0.1", 8089)
     env.runner.start(100, spawn_rate=10)
