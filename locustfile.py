@@ -5,12 +5,11 @@ from locust.env import Environment
 from json import loads
 from random import choice
 
-
 mensagemFalha = "Nao foi possivel acessar o valor de data"
 
 class CargaApiAtendimento(HttpUser):
 
-    host = "https://brf-api-pim-attendance-dev.azurewebsites.net"
+    host = "https://brf-api-pim-attendance.azurewebsites.net"
     wait_time = between(1.0, 3.0)
 
     ENDPOINT_PRIFIX_ATENDIMENTO = "/api/StatusCliente"
@@ -104,7 +103,7 @@ class CargaApiAtendimento(HttpUser):
 
 class CargaApiCustomer(HttpUser):
 
-    host = "https://brf-api-pim-customer-dev.azurewebsites.net"
+    host = "https://brf-api-pim-customer.azurewebsites.net"
     wait_time = between(1.0, 3.0)
 
     ENDPOINT_PRIFIX_CUSTOMER_DEVOLUCOES = "/api/Devolucoes"
@@ -459,7 +458,7 @@ class CargaApiCustomer(HttpUser):
                 mensagemFalha
             )
 
-#    @task endpoint com problema
+    @task #endpoint com problema
     def obter_pedido(self):
 
         consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_CUSTOMER_PEDIDOS_RECUSADOS}/ObterPedido"
@@ -486,7 +485,7 @@ class CargaApiCustomer(HttpUser):
 
 class CargaApiProducts(HttpUser):
 
-    host = "https://brf-api-pim-product-dev.azurewebsites.net"
+    host = "https://brf-api-pim-product.azurewebsites.net"
     wait_time = between(1.0, 3.0)
 
     ENDPOINT_PRIFIX_PRODUTOS = "/api/Produtos"
@@ -615,12 +614,109 @@ class CargaApiProducts(HttpUser):
                 mensagemFalha
             )
 
+class CargaApiProductivity(HttpUser):
+    
+    host = "https://brf-api-pim-productivity.azurewebsites.net/"
+    wait_time = between(1.0, 3.0)
+
+    ENDPOINT_PRIFIX_PRODUCTIVITY = "/api/PainelIndicador"
+    COD_VENDEDOR_PRODUCTIVITY = [
+        "00580849",
+        "00307501",
+        "00553615"
+    ]
+
+    @task
+    def painel_indicador_monta_filtro(self):
+
+        consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_PRODUCTIVITY}/MontaFiltro"
+        body = {
+           "codVendedor": choice(self.COD_VENDEDOR_PRODUCTIVITY)
+        }
+
+        with self.client.post(url=consult_client_endpoint,
+                              name="CargaApiProductivity 01 - Painel indicador monta filtro",
+                              catch_response=True, json=body) as response:
+            resposta = loads(response.text or "null")
+
+        try:
+            print(
+                f"============= \n 01 - Painel indicador monta filtro \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+            if resposta["success"] != True and len(resposta["data"]) != 8:
+                response.failure(
+                    f"Corpo de resposta diferente do esperado: {response.text}")
+        except KeyError:
+            print(
+                f"============= \n 01 - FALHA montar filtro \n {response.text} \n Status code: {response.status_code}")
+            response.failure(
+                mensagemFalha
+            )
+
+    @task
+    def painel_indicador_busca_indicador(self):
+
+        consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_PRODUCTIVITY}/BuscaIndicador"
+        body = {
+           "codVendedor": choice(self.COD_VENDEDOR_PRODUCTIVITY),
+           "codCliente": "",
+           "mesPesquisa": "ATUAL" 
+        }
+
+        with self.client.post(url=consult_client_endpoint,
+                              name="CargaApiProductivity 02 - Painel indicador busca indicador",
+                              catch_response=True, json=body) as response:
+            resposta = loads(response.text or "null")
+
+        try:
+            print(
+                f"============= \n 02 - Painel bsuca indicador \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+            if resposta["success"] != True and len(resposta["data"]) != 8:
+                response.failure(
+                    f"Corpo de resposta diferente do esperado: {response.text}")
+        except KeyError:
+            print(
+                f"============= \n 02 - FALHA ao buscar indicador \n {response.text} \n Status code: {response.status_code}")
+            response.failure(
+                mensagemFalha
+            )
+
+class CargaApiLeadership(HttpUser):
+
+    host = "https://brf-api-pim-leadership.azurewebsites.net"
+    wait_time = between(1.0, 3.0)
+
+    ENDPOINT_PRIFIX_LEADERSHIP = "/api/v1/phasing"
+
+    @tag('teste')
+    @task
+    def phasing_leadership(self):
+
+        consult_client_endpoint = f"{self.ENDPOINT_PRIFIX_LEADERSHIP}/Volume/00511899/CurrentMonth"
+        
+        with self.client.get(url=consult_client_endpoint,
+                             name="CargaApiLeadership 01 - Painel Faseamento",
+                             catch_response=True) as response:
+            resposta = loads(response.text or "null")
+
+        try:
+            print(
+                f"============= \n 01 - Painel Faseamento \n {resposta['success']} \n {len(resposta['data'])} \n Status Code: {response.status_code}")
+            if resposta["success"] != True and len(resposta["data"]) != 7:
+                response.failure(
+                    f"Corpo de resposta diferente do esperado: {response.text}")
+        except KeyError:
+            print(
+                f"============= \n 01 - FALHA ao buscar resposta do faseamento \n {response.text} \n Status code: {response.status_code}")
+            response.failure(
+                mensagemFalha
+            )        
+
 if __name__ == "__main__":
-    env = Environment(user_classes=[CargaApiAtendimento, CargaApiCustomer, CargaApiProducts])
+    env = Environment(user_classes=[CargaApiLeadership],tags = ['teste'])
     env.create_local_runner()
     env.create_web_ui("127.0.0.1", 8089)
-    env.runner.start(200, spawn_rate=10)
-    gevent.spawn_later(3600, lambda: env.runner.quit())
+    env.runner.start(100, spawn_rate=10)
+    gevent.spawn_later(1800, lambda: env.runner.quit())
     env.runner.greenlet.join()
     env.web_ui.stop()
 #  tags = ['teste'])
